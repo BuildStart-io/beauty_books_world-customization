@@ -17,4 +17,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     persistSession: true,
     autoRefreshToken: true,
   },
+  db: { schema: 'beauty_books_world_customization' }
 });
