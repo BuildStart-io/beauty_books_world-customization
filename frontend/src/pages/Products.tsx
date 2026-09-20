@@ -98,8 +98,8 @@ export default function Products() {
     setEditingProduct(product);
     setName(product.name);
     setDescription(product.description || "");
-    setPrice(product.price.toString());
-    setDeliveryPrice(product.delivery_price?.toString() || "0");
+    setPrice(product.price != null ? String(product.price) : "");
+    setDeliveryPrice(product.delivery_price != null ? String(product.delivery_price) : "0");
     setProductType(product.product_type);
     setVariations(Array.isArray(product.variations) ? (product.variations as Variation[]) : []);
     setImages(Array.isArray(product.images) ? product.images : []);
@@ -354,9 +354,9 @@ export default function Products() {
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">LKR {product.price.toFixed(2)}</p>
-                          {product.product_type === "physical" && product.delivery_price > 0 && (
-                            <p className="text-xs text-muted-foreground">+LKR {product.delivery_price.toFixed(2)} delivery</p>
+                          <p className="font-medium">LKR {Number(product.price || 0).toFixed(2)}</p>
+                          {product.product_type === "physical" && Number(product.delivery_price || 0) > 0 && (
+                            <p className="text-xs text-muted-foreground">+LKR {Number(product.delivery_price || 0).toFixed(2)} delivery</p>
                           )}
                         </div>
                         <div className="flex gap-1">
@@ -389,9 +389,9 @@ export default function Products() {
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell className="capitalize">{product.product_type}</TableCell>
                           <TableCell>
-                            LKR {product.price.toFixed(2)}
-                            {product.product_type === "physical" && product.delivery_price > 0 && (
-                              <span className="block text-xs text-muted-foreground">+LKR {product.delivery_price.toFixed(2)} delivery</span>
+                            LKR {Number(product.price || 0).toFixed(2)}
+                            {product.product_type === "physical" && Number(product.delivery_price || 0) > 0 && (
+                              <span className="block text-xs text-muted-foreground">+LKR {Number(product.delivery_price || 0).toFixed(2)} delivery</span>
                             )}
                           </TableCell>
                           <TableCell>

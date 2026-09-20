@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, MessageSquare, CreditCard, Copy, Check, Smartphone, RefreshCw, Wifi, WifiOff, Plus, Trash2, ArrowUp, ArrowDown, GripVertical, Clock, Lock } from "lucide-react";
+import { Loader2, Save, MessageSquare, CreditCard, Copy, Check, Smartphone, RefreshCw, Wifi, WifiOff, Plus, Trash2, ArrowUp, ArrowDown, GripVertical, Clock, Lock, Phone } from "lucide-react";
 import WelcomeMediaUpload from "@/components/settings/WelcomeMediaUpload";
 import StaffManager from "@/components/settings/StaffManager";
 import { useStaffAccess } from "@/hooks/useStaffAccess";
@@ -26,7 +26,7 @@ interface PaymentAccount {
 
 interface SettingsData {
   welcome_message: { text: string; media_url?: string; bypass_triggers?: string[] };
-  payment_info: { accounts: PaymentAccount[] };
+  payment_info: { accounts: PaymentAccount[]; payment_slip_number?: string };
   auto_responses: { enabled: boolean };
 }
 
@@ -71,12 +71,16 @@ export default function Settings() {
   const [bankAccounts, setBankAccounts] = useState<PaymentAccount[]>([
     { account_type: "bank", account_label: "", account_number: "", account_name: "" }
   ]);
+  const [paymentSlipNumber, setPaymentSlipNumber] = useState("0761309690");
 
   // Auto Responses
   const [autoResponsesEnabled, setAutoResponsesEnabled] = useState(true);
 
   // Delivery Settings
   const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(0);
+
+  // Discount Settings
+  const [maxDiscountPercentage, setMaxDiscountPercentage] = useState<number>(0);
 
   // Order Notifications
   const [notificationPhone, setNotificationPhone] = useState("");
@@ -151,6 +155,9 @@ export default function Settings() {
           case "payment_info": {
             const val = setting.value as any;
             const defaultAccount: PaymentAccount = { account_type: "bank", account_label: "", account_number: "", account_name: "" };
+            if (val?.payment_slip_number) {
+              setPaymentSlipNumber(val.payment_slip_number);
+            }
             if (val?.accounts && Array.isArray(val.accounts)) {
               // Migrate old accounts that have bank_name to new format
               const migrated = val.accounts.map((a: any) => ({
@@ -173,6 +180,9 @@ export default function Settings() {
             break;
           case "delivery_settings":
             setFreeDeliveryThreshold((setting.value as any)?.free_delivery_threshold || 0);
+            break;
+          case "max_discount":
+            setMaxDiscountPercentage((setting.value as any)?.percentage || 0);
             break;
           case "order_followup_message": {
             const fVal = setting.value as any;
@@ -541,6 +551,7 @@ export default function Settings() {
     const validAccounts = bankAccounts.filter(a => a.account_label || a.account_number || a.account_name);
     saveSettings("payment_info", {
       accounts: validAccounts.length > 0 ? validAccounts : bankAccounts,
+      payment_slip_number: paymentSlipNumber.trim(),
       // Legacy compat
       bank_name: bankAccounts[0]?.account_label || "",
       account_number: bankAccounts[0]?.account_number || "",
@@ -554,6 +565,10 @@ export default function Settings() {
 
   const handleSaveDelivery = () => {
     saveSettings("delivery_settings", { free_delivery_threshold: freeDeliveryThreshold });
+  };
+
+  const handleSaveDiscount = () => {
+    saveSettings("max_discount", { percentage: maxDiscountPercentage });
   };
 
   const handleSaveNotifications = () => {
@@ -1137,6 +1152,42 @@ export default function Settings() {
               </CardContent>
             </Card>
 
+            {/* Discount Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Discounts</CardTitle>
+                <CardDescription>
+                  Configure the maximum discount percentage the AI can offer to customers.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="max-discount">Maximum Discount %</Label>
+                  <Input
+                    id="max-discount"
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={maxDiscountPercentage}
+                    onChange={(e) => setMaxDiscountPercentage(parseInt(e.target.value) || 0)}
+                    placeholder="e.g. 10"
+                    className="max-w-[160px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The AI will not offer any discount higher than this percentage. Set to 0 to disable discounts.
+                  </p>
+                </div>
+                <Button onClick={handleSaveDiscount} disabled={saving}>
+                  {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Save Discount Settings
+                </Button>
+              </CardContent>
+            </Card>
+
             {/* Order Notifications */}
             <Card>
               <CardHeader>
@@ -1197,6 +1248,26 @@ export default function Settings() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Dedicated Payment Slip WhatsApp Number */}
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                  <div className="space-y-1">
+                    <Label htmlFor="payment-slip-number" className="font-semibold text-sm flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-primary" />
+                      Payment Slip Submission WhatsApp Number
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      The WhatsApp number where customers should send their bank deposit slips or transfer screenshots for payment verification.
+                    </p>
+                  </div>
+                  <Input
+                    id="payment-slip-number"
+                    value={paymentSlipNumber}
+                    onChange={(e) => setPaymentSlipNumber(e.target.value)}
+                    placeholder="e.g., 0761309690"
+                    className="max-w-md bg-background"
+                  />
+                </div>
+
                 {bankAccounts.map((account, index) => (
                   <div key={index} className="border rounded-lg p-4 space-y-4">
                     <div className="flex items-center justify-between">

@@ -1,6 +1,37 @@
+# Environment variables & secrets
 .env
+.env.*
+*.env
+docker/.env
+frontend/.env
+supabase/.env
+!.env.example
+!**/.env.example
+
+# Dependencies & Build
 node_modules/
+**/node_modules/
 dist/
+**/dist/
+build/
+**/build/
 .DS_Store
 *.log
 .gemini/
+__pycache__/
+*.pyc
+
+# Local Database runtime data
+docker/volumes/db/data/
+
+# FAQs, product seeding scripts & raw data files
+beauty_books_faqs.json
+prd_text.txt
+add_*_product.py
+seed_*.py
+seed_*.ts
+frontend/insert_*.js
+frontend/consolidate_*.js
+frontend/scratch_*.js
+frontend/public/product_pdfs/
+scratch/

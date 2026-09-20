@@ -21,6 +21,7 @@ import {
   HandMetal,
   Trash2,
   Crosshair,
+  AlertCircle,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ export default function Conversations() {
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterMode, setFilterMode] = useState<"all" | "attention">("all");
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [takenOverChats, setTakenOverChats] = useState<Set<string>>(new Set());
@@ -108,37 +110,100 @@ export default function Conversations() {
     }
   }, [searchParams]);
 
-  // Fetch all takeover states for the user
+  // Helper to match phones across different formats (e.g. 94740237915, 0740237915, +94740237915)
+  const isPhoneMatch = useCallback((targetPhone: string, phoneSet: Set<string>) => {
+    if (!targetPhone) return false;
+    if (phoneSet.has(targetPhone)) return true;
+    const digits = targetPhone.replace(/\D/g, "");
+    const last9 = digits.slice(-9);
+    if (last9.length >= 7) {
+      for (const p of phoneSet) {
+        const pDigits = p.replace(/\D/g, "");
+        if (pDigits === digits || pDigits.endsWith(last9) || digits.endsWith(pDigits.slice(-9))) return true;
+      }
+    }
+    return false;
+  }, []);
+
+  // Fetch all takeover states and manual handoff orders for the user
   const fetchTakeovers = useCallback(async () => {
-    if (!user) return;
+    const targetUserId = effectiveUserId || user?.id;
+    if (!targetUserId) return;
     const { data } = await supabase
       .from("chat_takeovers" as any)
       .select("phone_number")
-      .eq("user_id", user.id)
+      .eq("user_id", targetUserId)
       .eq("is_taken_over", true);
+
+    const manualPhones = new Set<string>();
     if (data) {
-      setTakenOverChats(new Set((data as any[]).map((d: any) => d.phone_number)));
+      (data as any[]).forEach((d: any) => manualPhones.add(d.phone_number));
     }
-  }, [user]);
+
+    // Also fetch any orders requiring manual follow-up (branding_req === "Yes" or manual_handoff_status === "Manual Follow-Up Required")
+    const { data: manualOrders } = await supabase
+      .from("orders")
+      .select("customer_phone, whatsapp_phone, custom_fields")
+      .eq("user_id", targetUserId);
+
+    if (manualOrders) {
+      for (const ord of manualOrders as any[]) {
+        const cf = ord.custom_fields;
+        const needsHandoff = cf?.manual_handoff_status === "Manual Follow-Up Required" || 
+                             cf?.follow_up_status === "Manual Follow-Up Required" ||
+                             String(cf?.branding_req || "").toLowerCase() === "yes";
+        if (needsHandoff) {
+          if (ord.whatsapp_phone) manualPhones.add(ord.whatsapp_phone);
+          if (ord.customer_phone) manualPhones.add(ord.customer_phone);
+        }
+      }
+    }
+
+    setTakenOverChats(manualPhones);
+  }, [user, effectiveUserId]);
 
   useEffect(() => {
     fetchTakeovers();
     fetchTrackedPhones();
   }, [fetchTakeovers, fetchTrackedPhones]);
 
+  // Realtime subscription for chat_takeovers
+  useEffect(() => {
+    const channel = supabase
+      .channel("chat-takeovers-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_takeovers" },
+        () => {
+          fetchTakeovers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchTakeovers]);
+
   const toggleTakeover = useCallback(async (phoneNumber: string) => {
     if (!user || togglingTakeover) return;
     setTogglingTakeover(true);
     try {
-      const isTakenOver = takenOverChats.has(phoneNumber);
+      const isTakenOver = isPhoneMatch(phoneNumber, takenOverChats);
+      const digits = phoneNumber.replace(/\D/g, "");
+      const last9 = digits.length >= 9 ? digits.slice(-9) : digits;
       if (isTakenOver) {
         await (supabase.from("chat_takeovers" as any) as any)
           .delete()
           .eq("user_id", effectiveUserId || user.id)
-          .eq("phone_number", phoneNumber);
+          .ilike("phone_number", `%${last9}`);
         setTakenOverChats(prev => {
-          const next = new Set(prev);
-          next.delete(phoneNumber);
+          const next = new Set<string>();
+          prev.forEach(p => {
+            const pDigits = p.replace(/\D/g, "");
+            const pLast9 = pDigits.length >= 9 ? pDigits.slice(-9) : pDigits;
+            if (pLast9 !== last9) next.add(p);
+          });
           return next;
         });
         toast({ title: "Bot re-enabled for this chat" });
@@ -157,7 +222,7 @@ export default function Conversations() {
     } finally {
       setTogglingTakeover(false);
     }
-  }, [user, takenOverChats, togglingTakeover, toast]);
+  }, [user, effectiveUserId, takenOverChats, togglingTakeover, toast]);
 
   const deleteThread = async (phoneNumber: string) => {
     try {
@@ -393,12 +458,20 @@ export default function Conversations() {
     if (hours < 48) return "Yesterday";
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
   };
+  const attentionCount = threads.filter((t) => isPhoneMatch(t.phone_number, takenOverChats)).length;
+  const isSelectedManualAttention = selectedPhone ? isPhoneMatch(selectedPhone, takenOverChats) : false;
+  const isSelectedTracked = selectedPhone ? trackedPhones.has(selectedPhone) : false;
 
-  const filteredThreads = threads.filter(
-    (t) =>
+  const filteredThreads = threads.filter((t) => {
+    const matchesSearch =
       t.phone_number.includes(searchQuery) ||
-      t.sender_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      t.sender_name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (filterMode === "attention") {
+      return isPhoneMatch(t.phone_number, takenOverChats);
+    }
+    return true;
+  });
 
   return (
     <DashboardLayout>
@@ -418,7 +491,7 @@ export default function Conversations() {
               selectedPhone ? "hidden md:flex" : "flex"
             )}
           >
-            <div className="p-3 border-b">
+            <div className="p-3 border-b space-y-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -427,6 +500,32 @@ export default function Conversations() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
                 />
+              </div>
+              <div className="flex gap-1.5 pt-0.5">
+                <Button
+                  type="button"
+                  variant={filterMode === "all" ? "default" : "secondary"}
+                  size="sm"
+                  className="h-7 text-xs px-2.5"
+                  onClick={() => setFilterMode("all")}
+                >
+                  All ({threads.length})
+                </Button>
+                <Button
+                  type="button"
+                  variant={filterMode === "attention" ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-7 text-xs px-2.5 gap-1.5",
+                    filterMode === "attention"
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                  )}
+                  onClick={() => setFilterMode("attention")}
+                >
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                  Needs Attention ({attentionCount})
+                </Button>
               </div>
             </div>
             <ScrollArea className="flex-1">
@@ -438,7 +537,7 @@ export default function Conversations() {
                 <div className="text-center py-8 px-4">
                   <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    No conversations yet
+                    {filterMode === "attention" ? "No chats need attention" : "No conversations yet"}
                   </p>
                 </div>
               ) : (
@@ -446,24 +545,34 @@ export default function Conversations() {
                   {filteredThreads.map((thread) => {
                     const isTracked = trackedPhones.has(thread.phone_number);
                     const trackedFaqs = trackedPhones.get(thread.phone_number) || [];
+                    const isManualAttention = isPhoneMatch(thread.phone_number, takenOverChats);
                     
                     return (
                       <button
                         key={thread.phone_number}
                         onClick={() => handleSelectThread(thread.phone_number)}
                         className={cn(
-                          "w-full text-left px-4 py-3 border-b hover:bg-muted/50 transition-colors",
+                          "w-full text-left px-4 py-3 border-b hover:bg-muted/50 transition-colors relative",
                           selectedPhone === thread.phone_number && "bg-muted",
-                          isTracked && "border-l-4 border-l-primary bg-primary/5"
+                          isTracked && "border-l-4 border-l-primary bg-primary/5",
+                          isManualAttention && "border-l-4 border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/20"
                         )}
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex flex-col items-center gap-1 flex-shrink-0">
                             <div className={cn(
                               "h-10 w-10 rounded-full flex items-center justify-center",
-                              isTracked ? "bg-primary/20 ring-2 ring-primary" : "bg-primary/10"
+                              isManualAttention
+                                ? "bg-amber-500/20 ring-2 ring-amber-500 text-amber-600 dark:text-amber-400"
+                                : isTracked
+                                  ? "bg-primary/20 ring-2 ring-primary text-primary"
+                                  : "bg-primary/10 text-primary"
                             )}>
-                              <User className={cn("h-5 w-5", isTracked ? "text-primary" : "text-primary")} />
+                              {isManualAttention ? (
+                                <AlertCircle className="h-5 w-5" />
+                              ) : (
+                                <User className="h-5 w-5" />
+                              )}
                             </div>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -489,13 +598,19 @@ export default function Conversations() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                                 <p className={cn(
                                   "font-medium text-sm truncate",
-                                  isTracked && "text-primary font-bold"
+                                  isManualAttention ? "text-amber-700 dark:text-amber-400 font-bold" : isTracked ? "text-primary font-bold" : ""
                                 )}>
                                   {thread.sender_name}
                                 </p>
+                                {isManualAttention && (
+                                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10px] font-semibold flex items-center gap-1 px-1.5 py-0">
+                                    <AlertCircle className="h-2.5 w-2.5 text-amber-600 dark:text-amber-400" />
+                                    Need Manual Attention
+                                  </Badge>
+                                )}
                                 {isTracked && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -556,20 +671,36 @@ export default function Conversations() {
                   </Button>
                   <div className={cn(
                     "h-9 w-9 rounded-full flex items-center justify-center",
-                    trackedPhones.has(selectedPhone) ? "bg-primary/20 ring-2 ring-primary" : "bg-primary/10"
+                    isSelectedManualAttention
+                      ? "bg-amber-500/20 ring-2 ring-amber-500 text-amber-600 dark:text-amber-400"
+                      : isSelectedTracked
+                        ? "bg-primary/20 ring-2 ring-primary text-primary"
+                        : "bg-primary/10 text-primary"
                   )}>
-                    <User className="h-5 w-5 text-primary" />
+                    {isSelectedManualAttention ? (
+                      <AlertCircle className="h-5 w-5" />
+                    ) : (
+                      <User className="h-5 w-5" />
+                    )}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className={cn(
                         "font-medium text-sm",
-                        trackedPhones.has(selectedPhone) && "text-primary font-bold"
+                        isSelectedManualAttention
+                          ? "text-amber-700 dark:text-amber-400 font-bold"
+                          : isSelectedTracked && "text-primary font-bold"
                       )}>
                         {threads.find((t) => t.phone_number === selectedPhone)
                           ?.sender_name || "Unknown"}
                       </p>
-                      {trackedPhones.has(selectedPhone) && (
+                      {isSelectedManualAttention && (
+                        <Badge variant="outline" className="gap-1 text-xs border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium">
+                          <AlertCircle className="h-3 w-3" />
+                          Need Manual Attention
+                        </Badge>
+                      )}
+                      {isSelectedTracked && (
                         <Badge variant="outline" className="gap-1 text-xs border-primary/50 text-primary">
                           <Crosshair className="h-3 w-3" />
                           FAQ Tracked
@@ -581,21 +712,24 @@ export default function Conversations() {
                     </p>
                   </div>
                   <Button
-                    variant={takenOverChats.has(selectedPhone) ? "default" : "outline"}
+                    variant={isSelectedManualAttention ? "default" : "outline"}
                     size="sm"
                     onClick={() => toggleTakeover(selectedPhone)}
                     disabled={togglingTakeover}
-                    className="gap-1.5"
+                    className={cn(
+                      "gap-1.5",
+                      isSelectedManualAttention && "bg-amber-600 hover:bg-amber-700 text-white"
+                    )}
                   >
-                    {takenOverChats.has(selectedPhone) ? (
+                    {isSelectedManualAttention ? (
                       <>
-                        <HandMetal className="h-4 w-4" />
-                        <span className="hidden sm:inline">Taken Over</span>
+                        <Bot className="h-4 w-4" />
+                        <span className="hidden sm:inline">Resume Bot</span>
                       </>
                     ) : (
                       <>
-                        <Bot className="h-4 w-4" />
-                        <span className="hidden sm:inline">Bot Active</span>
+                        <HandMetal className="h-4 w-4" />
+                        <span className="hidden sm:inline">Take Over Chat</span>
                       </>
                     )}
                   </Button>
@@ -648,6 +782,24 @@ export default function Conversations() {
                     </div>
                   )}
                 </ScrollArea>
+
+                {/* Manual Attention Banner */}
+                {isSelectedManualAttention && (
+                  <div className="px-3 py-1.5 bg-amber-500/15 border-t border-amber-500/30 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                      <span><strong>Manual Mode Active</strong> — Bot is paused for this customer. You are chatting directly.</span>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleTakeover(selectedPhone)}
+                      className="h-6 text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 px-2 font-semibold"
+                    >
+                      Resume Bot
+                    </Button>
+                  </div>
+                )}
 
                 {/* Reply Input */}
                 <div className="p-3 border-t bg-card">

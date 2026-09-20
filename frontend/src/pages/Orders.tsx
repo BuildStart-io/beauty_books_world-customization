@@ -13,6 +13,8 @@ import { Eye, ShoppingCart, Loader2, Phone, MapPin, CreditCard, Package, Message
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import LimitWarningBanner from "@/components/LimitWarningBanner";
+import { useAuth } from "@/hooks/useAuth";
+import { useStaffAccess } from "@/hooks/useStaffAccess";
 
 interface Order {
   id: string;
@@ -21,7 +23,8 @@ interface Order {
   whatsapp_phone: string | null;
   district: string | null;
   customer_address: string | null;
-  order_items: unknown;
+  order_items: any;
+  custom_fields?: any;
   special_instructions: string | null;
   payment_method: string;
   status: string;
@@ -52,6 +55,10 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const { user } = useAuth();
+  const { effectiveUserId } = useStaffAccess();
+  const currentUserId = effectiveUserId || user?.id;
 
   const fetchOrders = async () => {
     try {
@@ -106,6 +113,40 @@ export default function Orders() {
     }
   };
 
+  const updateHandoff = async (phone: string | null, active: boolean) => {
+    if (!phone) return;
+    if (!currentUserId) {
+      toast({ title: "Authentication required", variant: "destructive" });
+      return;
+    }
+    try {
+      if (active) {
+        const { error } = await supabase
+          .from("chat_takeovers" as any)
+          .upsert(
+            {
+              user_id: currentUserId,
+              phone_number: phone,
+              is_taken_over: true,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,phone_number" }
+          );
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("chat_takeovers" as any)
+          .delete()
+          .eq("user_id", currentUserId)
+          .eq("phone_number", phone);
+        if (error) throw error;
+      }
+      toast({ title: active ? "Manual handoff activated" : "Manual handoff deactivated" });
+    } catch (error: any) {
+      toast({ title: "Error updating handoff", description: error.message, variant: "destructive" });
+    }
+  };
+
   const deleteOrder = async (orderId: string) => {
     try {
       const { error } = await supabase.from("orders").delete().eq("id", orderId);
@@ -124,7 +165,29 @@ export default function Orders() {
       return;
     }
 
-    const headers = ["Order ID", "Customer Name", "Phone", "District", "Address", "Items", "Payment Method", "Status", "Total (LKR)", "Special Instructions", "Date"];
+    const headers = [
+      "Order ID",
+      "Customer Name",
+      "Phone",
+      "District",
+      "Address",
+      "Items",
+      "Purchase Type",
+      "Quantity",
+      "Packaging",
+      "Branding / Customization",
+      "Sample Request",
+      "Discount %",
+      "Discount Amount",
+      "Quotation Amount",
+      "Quotation Status",
+      "Payment Method",
+      "Payment Status",
+      "Order Status",
+      "Follow-up Status",
+      "Manual Handoff",
+      "Date"
+    ];
     const rows = orders.map((o) => {
       const items = Array.isArray(o.order_items)
         ? (o.order_items as any[]).map((i: any) => `${i.name} x${i.quantity}`).join("; ")
@@ -136,10 +199,20 @@ export default function Orders() {
         o.district || "",
         o.customer_address || "",
         items,
+        o.custom_fields?.purchase_type || "",
+        o.custom_fields?.quantity || "",
+        o.custom_fields?.packaging_option || "",
+        o.custom_fields?.branding_req || "",
+        o.custom_fields?.sample_request || "",
+        o.custom_fields?.discount_percentage || "0",
+        o.custom_fields?.discount_amount || "0",
+        Number(o.total_amount || 0).toFixed(2),
+        o.custom_fields?.quotation_status || "Sent",
         o.payment_method === "cod" ? "Cash on Delivery" : "Bank Transfer",
+        o.custom_fields?.payment_status || "Pending",
         o.status,
-        o.total_amount.toFixed(2),
-        o.special_instructions || "",
+        o.custom_fields?.follow_up_status || "Pending",
+        o.custom_fields?.manual_handoff_status || "Automated",
         format(new Date(o.created_at), "yyyy-MM-dd HH:mm"),
       ];
     });
@@ -238,7 +311,7 @@ export default function Orders() {
                         <Badge className={statusColors[order.status]}>{order.status}</Badge>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">LKR {order.total_amount.toFixed(2)}</span>
+                        <span className="font-medium">LKR {Number(order.total_amount || 0).toFixed(2)}</span>
                         <span className="text-muted-foreground">{format(new Date(order.created_at), "MMM d, yyyy")}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -274,6 +347,7 @@ export default function Orders() {
                       <TableRow>
                         <TableHead>Customer</TableHead>
                         <TableHead>Phone</TableHead>
+                        <TableHead>Purchase Type</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead>Status</TableHead>
@@ -286,7 +360,24 @@ export default function Orders() {
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">{order.customer_name}</TableCell>
                           <TableCell>{order.customer_phone}</TableCell>
-                          <TableCell>LKR {order.total_amount.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 items-start">
+                              <Badge variant="secondary" className="font-normal text-xs">
+                                {order.custom_fields?.purchase_type || "Standard"}
+                              </Badge>
+                              {String(order.custom_fields?.branding_req || "").toLowerCase() === "yes" && (
+                                <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 font-semibold text-[10px] px-1.5 py-0">
+                                  Branding (LKR 5,000)
+                                </Badge>
+                              )}
+                              {(order.custom_fields?.manual_handoff_status === "Manual Follow-Up Required" || order.custom_fields?.follow_up_status === "Manual Follow-Up Required") && (
+                                <Badge variant="outline" className="text-amber-700 border-amber-400 dark:text-amber-300 text-[10px] px-1.5 py-0 font-medium">
+                                  Manual Follow-Up
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>LKR {Number(order.total_amount || 0).toFixed(2)}</TableCell>
                           <TableCell className="capitalize">
                             {order.payment_method === "cod" ? "Cash on Delivery" : "Bank Transfer"}
                           </TableCell>
@@ -365,26 +456,68 @@ export default function Orders() {
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm text-muted-foreground flex items-center gap-1">
-                      <Phone className="h-3 w-3" /> Phone
+                      <Phone className="h-3 w-3" /> Contact Number
                     </h4>
                     <p>{selectedOrder.customer_phone}</p>
                   </div>
                 </div>
 
-                {(selectedOrder.district || selectedOrder.customer_address) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" /> Shipping Location
+                      <MapPin className="h-3 w-3" /> Customer Address
                     </h4>
                     {selectedOrder.district && <p className="font-medium">District: {selectedOrder.district}</p>}
                     {selectedOrder.customer_address && <p>{selectedOrder.customer_address}</p>}
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Purchase Type</h4>
+                    <p>{selectedOrder.custom_fields?.purchase_type || "N/A"}</p>
+                  </div>
+                </div>
 
-                {/* Order Items */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Packaging Option</h4>
+                    <p>{selectedOrder.custom_fields?.packaging_option || "N/A"}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Branding / Customization</h4>
+                    <p>{selectedOrder.custom_fields?.branding_req || "N/A"}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Sample Request</h4>
+                    <p>{selectedOrder.custom_fields?.sample_request || "No"}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Follow-up Status</h4>
+                    <Badge 
+                      variant={selectedOrder.custom_fields?.follow_up_status === "Manual Follow-Up Required" ? "default" : "outline"}
+                      className={selectedOrder.custom_fields?.follow_up_status === "Manual Follow-Up Required" ? "bg-amber-600 hover:bg-amber-700 text-white font-semibold" : ""}
+                    >
+                      {selectedOrder.custom_fields?.follow_up_status || "Pending"}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Manual Handoff Status</h4>
+                    <Badge 
+                      variant={selectedOrder.custom_fields?.manual_handoff_status === "Manual Follow-Up Required" ? "default" : "outline"}
+                      className={selectedOrder.custom_fields?.manual_handoff_status === "Manual Follow-Up Required" ? "bg-amber-600 hover:bg-amber-700 text-white font-semibold" : ""}
+                    >
+                      {selectedOrder.custom_fields?.manual_handoff_status || "Automated"}
+                    </Badge>
+                  </div>
+                </div>
+
+
+
+                {/* Order Items & Quotation */}
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm text-muted-foreground flex items-center gap-1">
-                    <Package className="h-3 w-3" /> Order Items
+                    <Package className="h-3 w-3" /> Selected Products & Quantity
                   </h4>
                   <div className="border rounded-lg divide-y">
                     {(Array.isArray(selectedOrder.order_items) ? selectedOrder.order_items : []).map((item: any, index: number) => (
@@ -406,7 +539,21 @@ export default function Orders() {
                   </div>
                 </div>
 
-                {/* Payment & Total */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t pt-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Discount %</p>
+                    <p className="font-medium">{selectedOrder.custom_fields?.discount_percentage || "0"}%</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Discount Amount</p>
+                    <p className="font-medium">LKR {selectedOrder.custom_fields?.discount_amount || "0.00"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Quotation Amount</p>
+                    <p className="font-bold text-lg">LKR {Number(selectedOrder.total_amount || 0).toFixed(2)}</p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm text-muted-foreground flex items-center gap-1">
@@ -417,8 +564,21 @@ export default function Orders() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">Total Amount</h4>
-                    <p className="text-2xl font-bold">LKR {selectedOrder.total_amount.toFixed(2)}</p>
+                    <h4 className="font-medium text-sm text-muted-foreground">Payment Status</h4>
+                    <div className="flex items-center gap-2">
+                      <Badge className={selectedOrder.custom_fields?.payment_status === "verified" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                        {selectedOrder.custom_fields?.payment_status || "Pending"}
+                      </Badge>
+                      {selectedOrder.status === "pending" && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => updateOrderStatus(selectedOrder.id, "processing")}
+                        >
+                          Verify Payment
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -432,7 +592,7 @@ export default function Orders() {
                 {/* Status Update */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
                   <div className="space-y-1">
-                    <h4 className="font-medium text-sm">Update Status</h4>
+                    <h4 className="font-medium text-sm">Order Status</h4>
                     <Select
                       value={selectedOrder.status}
                       onValueChange={(value) => updateOrderStatus(selectedOrder.id, value)}
@@ -449,7 +609,19 @@ export default function Orders() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Quotation Status</h4>
+                    <Badge variant="outline">{selectedOrder.custom_fields?.quotation_status || "Sent"}</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => updateHandoff(selectedOrder.whatsapp_phone || selectedOrder.customer_phone, true)}
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Take Over Chat
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

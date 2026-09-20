@@ -19,6 +19,8 @@ import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 import { useFcmToken } from "./hooks/useFcmToken";
 
+import ErrorBoundary from "./components/ErrorBoundary";
+
 const queryClient = new QueryClient();
 
 function AppContent() {
@@ -33,23 +35,25 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AppContent />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/products" element={<Products />} />
-          <Route path="/dashboard/faqs" element={<Faqs />} />
-          <Route path="/dashboard/orders" element={<Orders />} />
-          <Route path="/dashboard/conversations" element={<Conversations />} />
-          <Route path="/dashboard/leads" element={<Leads />} />
-          <Route path="/dashboard/settings" element={<Settings />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/accounts" element={<AdminAccounts />} />
-          <Route path="/admin/accounts/:userId" element={<AdminUserDetail />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/products" element={<Products />} />
+            <Route path="/dashboard/faqs" element={<Faqs />} />
+            <Route path="/dashboard/orders" element={<Orders />} />
+            <Route path="/dashboard/conversations" element={<Conversations />} />
+            <Route path="/dashboard/leads" element={<Leads />} />
+            <Route path="/dashboard/settings" element={<Settings />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/accounts" element={<AdminAccounts />} />
+            <Route path="/admin/accounts/:userId" element={<AdminUserDetail />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

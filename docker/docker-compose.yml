@@ -63,7 +63,7 @@ services:
       EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
     volumes:
       - ./volumes/snippets:/app/snippets:z
-      - ./volumes/functions:/app/edge-functions:ro,z
+      - ../supabase/functions:/app/edge-functions:ro,z
 
   # Envoy is the default API gateway
   # See: https://github.com/orgs/supabase/discussions/48048
@@ -436,7 +436,7 @@ services:
     image: supabase/edge-runtime:v1.74.0
     restart: unless-stopped
     volumes:
-      - ./volumes/functions:/home/deno/functions:z
+      - ../supabase/functions:/home/deno/functions:z
       - deno-cache:/root/.cache/deno
     depends_on:
       api-gw:
@@ -464,6 +464,11 @@ services:
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       # TODO: Allow configuring VERIFY_JWT per function.
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
+      AI_GENERATE_URL: ${AI_GENERATE_URL}
+      BOT_API_KEY: ${BOT_API_KEY}
+      WAHA_BASE_URL: ${WAHA_BASE_URL}
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WEBHOOK_URL_OVERRIDE: ${WEBHOOK_URL_OVERRIDE:-http://172.17.0.1:8000/functions/v1/webhook-wsender}
     command:
       [
         "start",
