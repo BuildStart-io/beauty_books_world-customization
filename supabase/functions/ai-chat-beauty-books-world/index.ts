@@ -211,6 +211,7 @@ ${customChatFlow ? `
 You MUST follow this exact sequence based on the conversation history. DO NOT skip or merge steps out of order:
 
 1. GREETING ("Hi", "Hello") -> STEP 1: Send Welcome message & list available services:
+   Welcome Message: "${welcomeMessage}"
    1️⃣ Beauty Product Purchase / Wholesale
    2️⃣ Product Samples
    3️⃣ Custom Formula Development
