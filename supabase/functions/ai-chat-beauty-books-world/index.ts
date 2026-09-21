@@ -238,6 +238,7 @@ You MUST follow this exact sequence based on the conversation history. DO NOT sk
    CRITICAL: DO NOT SEND THE FINAL ORDER SUMMARY YET! You MUST wait for their answer to this branding question!
 
 5. AFTER CUSTOMER ANSWERS BRANDING ("Yes" or "No"):
+   - If the customer answers "Yes" to Private-Label Branding, you MUST include the tag <BRANDING_YES> anywhere in your response.
    -> STEP 8: Calculate and send the structured Order Summary:
    - Product Subtotal = Unit Price × Quantity (e.g. 12 × LKR 1,825 = LKR 21,900)
 ${maxDiscount > 0 ? `   - Discount Rate: ${maxDiscount}% (Configured in dashboard settings)
@@ -350,7 +351,7 @@ FAQ TRACKING:
     const aiGenerateUrl = Deno.env.get("AI_GENERATE_URL");
     const botApiKey = Deno.env.get("BOT_API_KEY");
     const MODEL = "google/gemini-3-flash-preview";
-    const MAX_TOKENS = 500;
+    const MAX_TOKENS = 1200;
 
     let aiResponse: Response;
     if (aiGenerateUrl && botApiKey) {
@@ -428,6 +429,22 @@ FAQ TRACKING:
 
     // Check if the AI response contains order JSON
     let orderCreated = false;
+
+    // IMMEDIATE CHAT TAKEOVER DETECTION
+    if (responseText.includes("<BRANDING_YES>")) {
+      console.log("Customer agreed to Private Branding. Triggering immediate manual handoff.");
+      const { error: takeoverError } = await supabase.from("chat_takeovers").upsert({
+        user_id: userId,
+        whatsapp_phone: phoneNumber,
+        customer_phone: phoneNumber,
+        customer_name: senderName || "WhatsApp Customer",
+        status: "Active",
+      });
+      if (takeoverError) {
+        console.error("Error creating immediate chat takeover:", takeoverError);
+      }
+    }
+
     const orderJsonMatches = [...responseText.matchAll(/<ORDER_JSON>([\s\S]*?)<\/ORDER_JSON>/g)];
     for (const orderJsonMatch of orderJsonMatches) {
       if (ordersLimitReached) {

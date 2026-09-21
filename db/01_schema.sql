@@ -464,6 +464,7 @@ CREATE TABLE beauty_books_world_customization.orders (
     customer_phone text NOT NULL,
     customer_address text,
     order_items jsonb DEFAULT '[]'::jsonb NOT NULL,
+    custom_fields jsonb DEFAULT '{}'::jsonb NOT NULL,
     special_instructions text,
     payment_method text DEFAULT 'cod'::text NOT NULL,
     status text DEFAULT 'pending'::text NOT NULL,
