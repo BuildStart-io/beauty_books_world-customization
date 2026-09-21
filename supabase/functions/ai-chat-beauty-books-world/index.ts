@@ -536,7 +536,7 @@ FAQ TRACKING:
                     sendApiKey = sessionApiKey || null;
                   }
 
-                  const sendNotif = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp`, {
+                  const sendNotif = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-beauty-books-world`, {
                     method: "POST",
                     headers: {
                       Authorization: `Bearer ${supabaseServiceKey}`,

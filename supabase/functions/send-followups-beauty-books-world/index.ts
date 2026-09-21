@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
         if (takeover?.is_taken_over) continue;
 
         try {
-          const res = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp`, {
+          const res = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-beauty-books-world`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${serviceKey}`,

@@ -170,7 +170,7 @@ serve(async (req) => {
     }
 
     // Fire-and-forget trigger process-message (cron is the safety net)
-    fetch(`${supabaseUrl}/functions/v1/process-message`, {
+    fetch(`${supabaseUrl}/functions/v1/process-message-beauty-books-world`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
