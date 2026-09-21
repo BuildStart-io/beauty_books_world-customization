@@ -272,9 +272,9 @@ ${maxDiscount > 0 ? `   - Discount Rate: ${maxDiscount}% (Configured in dashboar
 7. AS SOON AS CUSTOMER PROVIDES DELIVERY DETAILS (Name, Address, Phone):
    -> STEP 11 & 12: In that VERY SAME message:
    1. Provide payment instructions:
-      🏦 Bank: Commercial Bank (Dehiwala Branch)
-      Account: 8012345678
-      Name: Beauty Books World Pvt Ltd
+      🏦 Bank: ${paymentInfo.bank_name || 'Commercial Bank (Dehiwala Branch)'}
+      Account: ${paymentInfo.account_number || '8012345678'}
+      Name: ${paymentInfo.account_name || 'Beauty Books World Pvt Ltd'}
    2. Instruct: "Please send a photo of your deposit slip or a screenshot of the transfer to our dedicated payment WhatsApp number: ${paymentSlipNumber} for verification."
    3. State: "Your order has been recorded in Payment Pending status and will be scheduled for production upon payment confirmation. 💰 ✅"
    4. CRITICAL MANDATORY: APPEND <ORDER_JSON> AT THE VERY END OF THIS MESSAGE!
