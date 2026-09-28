@@ -314,6 +314,21 @@ export default function Orders() {
                         <span className="font-medium">LKR {Number(order.total_amount || 0).toFixed(2)}</span>
                         <span className="text-muted-foreground">{format(new Date(order.created_at), "MMM d, yyyy")}</span>
                       </div>
+                      <div className="flex flex-wrap gap-1 items-center">
+                        <Badge variant="secondary" className="font-normal text-[10px]">
+                          {order.custom_fields?.purchase_type || "Standard"}
+                        </Badge>
+                        {String(order.custom_fields?.branding_req || "").toLowerCase() === "yes" && (
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 font-semibold text-[10px] px-1.5 py-0">
+                            Branding (LKR 5,000)
+                          </Badge>
+                        )}
+                        {(order.custom_fields?.manual_handoff_status === "Manual Follow-Up Required" || order.custom_fields?.follow_up_status === "Manual Follow-Up Required") && (
+                          <Badge variant="outline" className="text-amber-700 border-amber-400 dark:text-amber-300 text-[10px] px-1.5 py-0 font-medium">
+                            Manual Follow-Up
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedOrder(order)}>
                           <Eye className="mr-2 h-4 w-4" />

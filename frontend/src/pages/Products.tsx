@@ -13,10 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Package, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Loader2, AlertTriangle, FileText, Volume2 } from "lucide-react";
 import VariationEditor, { type Variation } from "@/components/products/VariationEditor";
 import ProductImageUpload from "@/components/products/ProductImageUpload";
 import ProductVideoUpload from "@/components/products/ProductVideoUpload";
+import ProductPdfUpload from "@/components/products/ProductPdfUpload";
+import ProductAudioUpload from "@/components/products/ProductAudioUpload";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import LimitWarningBanner from "@/components/LimitWarningBanner";
 
@@ -30,6 +32,8 @@ interface Product {
   variations: unknown;
   images: string[];
   video_url: string | null;
+  pdf_url: string | null;
+  audio_url: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -55,6 +59,8 @@ export default function Products() {
   const [variations, setVariations] = useState<Variation[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
 
   const fetchProducts = async () => {
@@ -90,6 +96,8 @@ export default function Products() {
     setVariations([]);
     setImages([]);
     setVideoUrl(null);
+    setPdfUrl(null);
+    setAudioUrl(null);
     setIsActive(true);
     setEditingProduct(null);
   };
@@ -104,6 +112,8 @@ export default function Products() {
     setVariations(Array.isArray(product.variations) ? (product.variations as Variation[]) : []);
     setImages(Array.isArray(product.images) ? product.images : []);
     setVideoUrl(product.video_url || null);
+    setPdfUrl(product.pdf_url || null);
+    setAudioUrl(product.audio_url || null);
     setIsActive(product.is_active);
     setDialogOpen(true);
   };
@@ -122,6 +132,8 @@ export default function Products() {
         variations: variations as unknown as import("@/integrations/supabase/types").Json,
         images,
         video_url: videoUrl,
+        pdf_url: pdfUrl,
+        audio_url: audioUrl,
         is_active: isActive,
         user_id: effectiveUserId || user!.id,
       } as any;
@@ -296,6 +308,10 @@ export default function Products() {
 
                 <ProductVideoUpload videoUrl={videoUrl} onChange={setVideoUrl} />
 
+                <ProductPdfUpload pdfUrl={pdfUrl} onChange={setPdfUrl} />
+
+                <ProductAudioUpload audioUrl={audioUrl} onChange={setAudioUrl} />
+
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                     Cancel
@@ -344,7 +360,19 @@ export default function Products() {
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground capitalize">{product.product_type}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className="text-sm text-muted-foreground capitalize">{product.product_type}</span>
+                            {product.pdf_url && (
+                              <a href={product.pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded font-medium hover:bg-primary/20">
+                                <FileText className="h-2.5 w-2.5" /> PDF
+                              </a>
+                            )}
+                            {product.audio_url && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded font-medium">
+                                <Volume2 className="h-2.5 w-2.5" /> Audio
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -386,7 +414,23 @@ export default function Products() {
                     <TableBody>
                       {products.map((product) => (
                         <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell className="font-medium">
+                            <div>{product.name}</div>
+                            {(product.pdf_url || product.audio_url) && (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                {product.pdf_url && (
+                                  <a href={product.pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-primary bg-primary/10 px-1.5 py-0.5 rounded font-medium hover:bg-primary/20">
+                                    <FileText className="h-3 w-3" /> PDF
+                                  </a>
+                                )}
+                                {product.audio_url && (
+                                  <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded font-medium">
+                                    <Volume2 className="h-3 w-3" /> Audio
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell className="capitalize">{product.product_type}</TableCell>
                           <TableCell>
                             LKR {Number(product.price || 0).toFixed(2)}

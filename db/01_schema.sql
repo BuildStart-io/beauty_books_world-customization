@@ -474,6 +474,7 @@ CREATE TABLE beauty_books_world_customization.orders (
     user_id uuid NOT NULL,
     whatsapp_phone text,
     district text,
+    custom_fields jsonb DEFAULT '{}'::jsonb,
     CONSTRAINT orders_payment_method_check CHECK ((payment_method = ANY (ARRAY['cod'::text, 'bank_transfer'::text]))),
     CONSTRAINT orders_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'shipped'::text, 'delivered'::text, 'cancelled'::text])))
 );
@@ -510,6 +511,8 @@ CREATE TABLE beauty_books_world_customization.products (
     user_id uuid NOT NULL,
     delivery_price numeric DEFAULT 0,
     video_url text,
+    pdf_url text,
+    audio_url text,
     CONSTRAINT products_product_type_check CHECK ((product_type = ANY (ARRAY['physical'::text, 'digital'::text])))
 );
 

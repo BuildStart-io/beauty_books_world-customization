@@ -134,6 +134,12 @@ serve(async (req) => {
       if (p.video_url) {
         line += ` | Video: ${p.video_url}`;
       }
+      if (p.pdf_url) {
+        line += ` | PDF/Brochure: ${p.pdf_url}`;
+      }
+      if (p.audio_url) {
+        line += ` | Audio/MP3: ${p.audio_url}`;
+      }
       if (p.variations && Array.isArray(p.variations) && p.variations.length > 0) {
         const varLines = p.variations.map((v: any) => {
           const opts = v.options?.map((o: any) => {
@@ -158,9 +164,11 @@ serve(async (req) => {
       return line;
     }).join("\n");
 
-    // Build a map of product name → first image URL for sending images
+    // Build lookup maps of product name → attachments for media sending
     const productImageMap: Record<string, string> = {};
     const productVideoMap: Record<string, string> = {};
+    const productPdfMap: Record<string, string> = {};
+    const productAudioMap: Record<string, string> = {};
     for (const p of products) {
       if (p.images && Array.isArray(p.images) && p.images.length > 0) {
         productImageMap[p.name.toLowerCase()] = p.images[0];
@@ -168,7 +176,17 @@ serve(async (req) => {
       if (p.video_url) {
         productVideoMap[p.name.toLowerCase()] = p.video_url;
       }
+      if (p.pdf_url) {
+        productPdfMap[p.name.toLowerCase()] = p.pdf_url;
+      }
+      if (p.audio_url) {
+        productAudioMap[p.name.toLowerCase()] = p.audio_url;
+      }
     }
+
+    const formattedBankAccounts = (paymentInfo.accounts && Array.isArray(paymentInfo.accounts) && paymentInfo.accounts.length > 0)
+      ? paymentInfo.accounts.map((acc: any) => `🏦 ${acc.account_label || acc.bank_name || acc.account_type || 'Bank Account'}\n   Account: ${acc.account_number}\n   Name: ${acc.account_name}`).join("\n\n")
+      : `🏦 Commercial Bank (Dehiwala Branch)\n   Account: 8012345678\n   Name: Beauty Books World Pvt Ltd`;
 
     // Build FAQ context with IDs so AI can report which ones it used
     const faqContext = faqs.map(f => {
@@ -193,6 +211,7 @@ const systemPrompt = `You are an intelligent WhatsApp chatbot assistant for a bu
 IMPORTANT GUIDELINES:
 - Respond in the SAME LANGUAGE the customer uses. Auto-detect their language.
 - KEEP IT SHORT: WhatsApp messages must be concise and scannable. Aim for 2-4 short lines max per response. Never send walls of text.
+- SHORTNESS RULE EXCEPTION: If the customer specifically asks to view or list all products (e.g. "show all products", "what are all the products", "list products", "products enna irukku", "book catalog"), you MAY exceed the 2-4 lines limit and clearly list all available products with their prices, grouped neatly with emojis.
 - Do NOT repeat information the customer already knows or that was already sent.
 - Get straight to the point. No lengthy greetings or unnecessary filler sentences.
 - Use emojis sparingly but effectively to highlight key info 🎯
@@ -201,14 +220,19 @@ IMPORTANT GUIDELINES:
   - Use emojis as bullet points and section separators (🔹, ✅, 📦, 💳, 🏦, 💰, 📧, 🚚, etc.)
   - When listing multiple items (like payment accounts), separate each with a clear emoji prefix and line breaks
   - Use line breaks generously to keep messages readable
-  - Example payment listing format:
-    🏦 Bank Name
-    Account: 1234567
-    Name: John Doe
+- ATTACHMENT RULES:
+  - PDF & BROCHURE ATTACHMENT: If a customer requests a product brochure, book PDF, sample pages, or catalog for a product, provide a helpful brief note and append <PDF_URL>[url from dynamic catalog]</PDF_URL> at the VERY END of your message.
+  - AUDIO & MP3 ATTACHMENT: If a customer requests an audio explanation, voice guide, or audio sample for a product, provide a brief helpful note and append <AUDIO_URL>[url from dynamic catalog]</AUDIO_URL> at the VERY END of your message.
 
-    💳 Digital Wallet
-    Account: wallet@email.com
-${customChatFlow ? `
+--- PAYMENT INFORMATION ---
+Official Bank Accounts:
+${formattedBankAccounts}
+
+Official Dedicated WhatsApp Number for Payment Slips / Receipts: ${paymentSlipNumber}
+CRITICAL PAYMENT SLIP RULE:
+- The ONLY authorized WhatsApp number where customers must send bank deposit slips or transfer screenshots is: ${paymentSlipNumber}.
+- NEVER invent, guess, or mention any other phone number under any circumstances!
+
 --- MANDATORY STEP-BY-STEP CONSULTATIVE SALES FLOW ---
 You MUST follow this exact sequence based on the conversation history. DO NOT skip or merge steps out of order:
 
@@ -274,13 +298,10 @@ ${maxDiscount > 0 ? `   - Discount Rate: ${maxDiscount}% (Configured in dashboar
 7. AS SOON AS CUSTOMER PROVIDES DELIVERY DETAILS (Name, Address, Phone):
    -> STEP 11 & 12: In that VERY SAME message:
    1. Provide payment instructions:
-      🏦 Bank: ${paymentInfo.bank_name || 'Commercial Bank (Dehiwala Branch)'}
-      Account: ${paymentInfo.account_number || '8012345678'}
-      Name: ${paymentInfo.account_name || 'Beauty Books World Pvt Ltd'}
+${formattedBankAccounts}
    2. Instruct: "Please send a photo of your deposit slip or a screenshot of the transfer to our dedicated payment WhatsApp number: ${paymentSlipNumber} for verification."
    3. State: "Your order has been recorded in Payment Pending status and will be scheduled for production upon payment confirmation. 💰 ✅"
    4. CRITICAL MANDATORY: APPEND <ORDER_JSON> AT THE VERY END OF THIS MESSAGE!
-` : `- If a customer wants to order, guide them through collecting: name, phone, product selection with variations, quantity, and payment method.`}
 
 CRITICAL ORDER INSTRUCTION:
 When the customer provides their delivery details (Full Name, Phone, Shipping Address, City/District) after the order summary is confirmed:
@@ -461,19 +482,9 @@ FAQ TRACKING:
     // Check if the AI response contains order JSON
     let orderCreated = false;
 
-    // IMMEDIATE CHAT TAKEOVER DETECTION
+    // Private branding detection - flagged for manual sales follow-up; chat remains active
     if (responseText.includes("<BRANDING_YES>")) {
-      console.log("Customer agreed to Private Branding. Triggering immediate manual handoff.");
-      const { error: takeoverError } = await supabase.from("chat_takeovers").upsert({
-        user_id: userId,
-        whatsapp_phone: phoneNumber,
-        customer_phone: phoneNumber,
-        customer_name: senderName || "WhatsApp Customer",
-        status: "Active",
-      });
-      if (takeoverError) {
-        console.error("Error creating immediate chat takeover:", takeoverError);
-      }
+      console.log("Customer agreed to Private Branding. Flagged for manual sales follow-up; chat remains active.");
     }
 
     const orderJsonMatches = [...responseText.matchAll(/<ORDER_JSON>([\s\S]*?)<\/ORDER_JSON>/g)];
@@ -545,18 +556,9 @@ FAQ TRACKING:
               console.log("Order saved successfully:", orderResult.id);
               orderCreated = true;
 
-              // If branding is requested or manual follow-up required, activate chat takeover so "Need Manual Attention" badge appears
+              // If branding is requested or manual follow-up required, order is flagged in custom_fields (chat remains active)
               if (isBrandingRequired || computedManualHandoff === "Manual Follow-Up Required") {
-                const targetPhones = [phoneNumber, orderData.customer_phone].filter(Boolean);
-                for (const p of targetPhones) {
-                  await supabase.from("chat_takeovers").upsert({
-                    user_id: userId,
-                    phone_number: p,
-                    is_taken_over: true,
-                    updated_at: new Date().toISOString(),
-                  }, { onConflict: "user_id,phone_number" });
-                }
-                console.log(`Chat takeover enabled for ${targetPhones.join(", ")} due to branding requirement.`);
+                console.log(`Branding requirement noted for order ${orderResult.id}; chat remains active.`);
               }
 
               // Send order notification to owner
@@ -720,15 +722,7 @@ FAQ TRACKING:
                 orderCreated = true;
 
                 if (isFbBranding) {
-                  const targetPhones = [phoneNumber, customerPhone].filter(Boolean);
-                  for (const p of targetPhones) {
-                    await supabase.from("chat_takeovers").upsert({
-                      user_id: userId,
-                      phone_number: p,
-                      is_taken_over: true,
-                      updated_at: new Date().toISOString(),
-                    }, { onConflict: "user_id,phone_number" });
-                  }
+                  console.log(`Fallback order: branding requirement flagged; chat remains active.`);
                 }
               } else {
                 console.error("Fallback order creation error:", fallbackError);
@@ -790,6 +784,12 @@ FAQ TRACKING:
     // Extract video URL if present
     const videoUrlMatch = responseText.match(/<VIDEO_URL>([\s\S]*?)<\/VIDEO_URL>/);
     const videoUrl = videoUrlMatch ? videoUrlMatch[1].trim() : null;
+    // Extract PDF URL if present
+    const pdfUrlMatch = responseText.match(/<PDF_URL>([\s\S]*?)<\/PDF_URL>/);
+    const pdfUrl = pdfUrlMatch ? pdfUrlMatch[1].trim() : null;
+    // Extract audio URL if present
+    const audioUrlMatch = responseText.match(/<AUDIO_URL>([\s\S]*?)<\/AUDIO_URL>/);
+    const audioUrl = audioUrlMatch ? audioUrlMatch[1].trim() : null;
 
     // Aggressively strip any JSON or technical markup from the response
     let cleanResponse = responseText;
@@ -797,23 +797,18 @@ FAQ TRACKING:
     cleanResponse = cleanResponse.replace(/<ORDER_JSON>[\s\S]*?<\/ORDER_JSON>/g, "");
     cleanResponse = cleanResponse.replace(/<IMAGE_URL>[\s\S]*?<\/IMAGE_URL>/g, "");
     cleanResponse = cleanResponse.replace(/<VIDEO_URL>[\s\S]*?<\/VIDEO_URL>/g, "");
+    cleanResponse = cleanResponse.replace(/<PDF_URL>[\s\S]*?<\/PDF_URL>/g, "");
+    cleanResponse = cleanResponse.replace(/<AUDIO_URL>[\s\S]*?<\/AUDIO_URL>/g, "");
     cleanResponse = cleanResponse.replace(/<USED_FAQS>[\s\S]*?<\/USED_FAQS>/g, "");
     
-    // Strip any [HANDOFF] tag from output
+    // Strip any [HANDOFF] or <BRANDING_YES> tag from output
     cleanResponse = cleanResponse.replace(/\[HANDOFF\]/gi, "");
+    cleanResponse = cleanResponse.replace(/<BRANDING_YES>/gi, "");
 
-    // For special inquiries (custom formula, workshops, books, salesman/human assistance), ensure polite closing and mark chat for manual attention
+    // For special inquiries (custom formula, workshops, books, salesman/human assistance), ensure polite closing while keeping chat active
     const customerSpecialInquiry = /\b(custom formula|formula development|speak to human|talk to human|agent|admin|sales\s*man|salesman|representative|workshop|workshops|book|books)\b/i.test(trimmedMessage);
     if (customerSpecialInquiry && !cleanResponse.toLowerCase().includes("contact you")) {
       cleanResponse = cleanResponse.trim() + "\n\nOur sales team will contact you shortly.";
-    }
-    if (customerSpecialInquiry && phoneNumber) {
-      await supabase.from("chat_takeovers").upsert({
-        user_id: userId,
-        phone_number: phoneNumber,
-        is_taken_over: true,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id,phone_number" });
     }
     const isHandoff = customerSpecialInquiry;
     
@@ -821,6 +816,8 @@ FAQ TRACKING:
     cleanResponse = cleanResponse.replace(/<ORDER_JSON>[\s\S]*/g, "");
     cleanResponse = cleanResponse.replace(/<IMAGE_URL>[\s\S]*/g, "");
     cleanResponse = cleanResponse.replace(/<VIDEO_URL>[\s\S]*/g, "");
+    cleanResponse = cleanResponse.replace(/<PDF_URL>[\s\S]*/g, "");
+    cleanResponse = cleanResponse.replace(/<AUDIO_URL>[\s\S]*/g, "");
     cleanResponse = cleanResponse.replace(/<USED_FAQS>[\s\S]*/g, "");
     // Remove any remaining orphan uppercase XML-like tags
     cleanResponse = cleanResponse.replace(/<\/?[A-Z_]+>/g, "");
@@ -870,7 +867,7 @@ FAQ TRACKING:
     }
 
     return new Response(
-      JSON.stringify({ response: cleanResponse, imageUrl, imageUrls, videoUrl, followupMessage, faqMedia, isHandoff }),
+      JSON.stringify({ response: cleanResponse, imageUrl, imageUrls, videoUrl, pdfUrl, audioUrl, followupMessage, faqMedia, isHandoff }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

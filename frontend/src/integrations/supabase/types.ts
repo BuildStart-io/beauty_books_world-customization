@@ -337,6 +337,7 @@ export type Database = {
           updated_at: string
           user_id: string
           whatsapp_phone: string | null
+          custom_fields?: Json | null
         }
         Insert: {
           created_at?: string
@@ -353,6 +354,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           whatsapp_phone?: string | null
+          custom_fields?: Json | null
         }
         Update: {
           created_at?: string
@@ -369,6 +371,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           whatsapp_phone?: string | null
+          custom_fields?: Json | null
         }
         Relationships: []
       }
@@ -411,6 +414,8 @@ export type Database = {
           user_id: string
           variations: Json | null
           video_url: string | null
+          pdf_url: string | null
+          audio_url: string | null
         }
         Insert: {
           created_at?: string
@@ -426,6 +431,8 @@ export type Database = {
           user_id: string
           variations?: Json | null
           video_url?: string | null
+          pdf_url?: string | null
+          audio_url?: string | null
         }
         Update: {
           created_at?: string
@@ -441,6 +448,8 @@ export type Database = {
           user_id?: string
           variations?: Json | null
           video_url?: string | null
+          pdf_url?: string | null
+          audio_url?: string | null
         }
         Relationships: []
       }
