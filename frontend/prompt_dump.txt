@@ -1,0 +1,62 @@
+You are a helpful assistant.
+--- DYNAMIC PRODUCT CATALOG ---
+- Whitening & Treatment Face Cream: Base price LKR 650 (physical) [Delivery: LKR 400]
+  * Formula Selection: Formula 01 - Premium Herbal Whitening Night Cream: LKR 1020, Formula 02 - Korean Glass Skin Whitening Cream Normal: LKR 1320, Formula 03 - Budget Advanced Acne Whitening Night Cream: LKR 650, Formula 04 - Herbal Anti Acne Brightening Cream: LKR 710, Formula 05 - Korean Glass Skin Whitening Night Cream Advance: LKR 1900, Formula 06 - Luxury Herbal Whitening Repair Face Cream: LKR 1675, Formula 07 - Premium Gold Whitening Sleeping Mask / Korean TXA: LKR 1825, Formula 08 - Herbal Brightening Repair Cream: LKR 1700, Formula 09 - Premium Rice Glow Whitening Sleeping Cream: LKR 1955, Formula 10 - Advanced Budget Premium Whitening Night Cream: LKR 1520
+- Korean Pink Aura Glass Night Face Cream: Base price LKR 1450 (physical) [Delivery: LKR 400]
+  * Packaging & Format Selection: 1kg Bulk Base - LKR 38,780/kg: LKR 38780, 30g Without Label & Box (MOQ 12 pcs) - LKR 1,450/pc (Pack: LKR 17,400): LKR 1450, 30g With Label & Box (MOQ 12 pcs) - LKR 1,600/pc (Pack: LKR 19,200): LKR 1600, 50g Without Label & Box (MOQ 12 pcs) - LKR 2,090/pc (Pack: LKR 25,080): LKR 2090, 50g With Label & Box (MOQ 12 pcs) - LKR 2,240/pc (Pack: LKR 26,880): LKR 2240
+- Specialized Treatment & Glass Skin Night Cream: Base price LKR 16700 (physical) [Delivery: LKR 400]
+  * Formula Selection: Formula 1: Ultra-Whitening & Pigmentation Repair Cream - LKR 27,850/kg: LKR 27850, Formula 2: Acne-Clearing & Clarifying Night Cream - LKR 19,300/kg: LKR 19300, Formula 3: All-in-One Luxury Glowing & Glass Skin Cream - LKR 16,700/kg: LKR 16700
+- Upgraded Luxury Treatment & Glass Skin Night Cream: Base price LKR 31500 (physical) [Delivery: LKR 400]
+  * Formula Selection: Formula 1 Upgrade: Ultra-Whitening & Pigmentation Repair Cream (Ultimate All-in-One) - LKR 38,000/kg: LKR 38000, Formula 3 Upgrade: Luxury Glowing & Glass Skin Cream - LKR 31,500/kg: LKR 31500
+- Whitening Day Face Cream SPF 30+: Base price LKR 785 (physical) [Delivery: LKR 400]
+  * Formula Selection: Formula 01 — Korean Glass Skin SPF 30+ Day Cream: LKR 800, Formula 02 — Advanced Herbal Whitening SPF 30+ Day Cream: LKR 1065, Formula 03 — Oil Control Whitening SPF 30+ Gel DayCream: LKR 785, Formula 04 — Luxury Brightening Pearl SPF 30+ Day Cream: LKR 1080, Formula 05 — Advanced Korean Aqua Whitening SPF 30+ Day Cream: LKR 900
+- Premium Face Serums: Base price LKR 700 (physical) [Delivery: LKR 400]
+  * Formula: Advanced Glass Skin & Pore-Refining Serum: LKR 0, Ultra Fast Whitening & Anti-Spot Serum: LKR 0, Intense Radiance & Barrier Repair Serum: LKR 0
+- Specialized Night & Treatment Serums: Base price LKR 585 (physical) [Delivery: LKR 400]
+  * Formula: Formula 01 – Advanced Glass Skin Brightening Night Serum: LKR 0, Formula 02 – Anti-Acne + Whitening Repair Serum: LKR 0, Formula 03 – Korean Glass Glow Night Serum: LKR 0, Formula 04 – Herbal Repair + Acne Recovery Serum: LKR 0, Formula 05 – Premium Vitamin Night Repair Serum: LKR 0
+- Targeted Acne, Blemish & Brightening Serums: Base price LKR 480 (physical) [Delivery: LKR 400]
+  * Formula: Formula 1: Essential Niacinamide & Zinc Serum (Low Budget): LKR 0, Formula 2: BHA Clarifying & Exfoliating Serum (Mid-Low Budget): LKR 0, Formula 3: Advanced Acne-Control & Soothing Serum (Medium Budget): LKR 0, Formula 4: Ultimate Brightening & Anti-Spot Serum (Mid-High Budget): LKR 0, Formula 5: Luxury Clinical Grade Skin-Barrier & Anti-Acne Serum (High Budget): LKR 0
+- Rice Water Clarifying & Treatment Face Wash: Base price LKR 710 (physical)
+  * Formula: Formula 01: Deep Brightening & Radiant Glow Face Wash: LKR 0, Formula 02: Acne-Prone & Oily Skin Purifying Face Wash: LKR 0, Formula 03: Intense Hydration & Barrier Repair Face Wash: LKR 0, Formula 04: Anti-Aging & Skin Firming Face Wash: LKR 0, Formula 05: Daily Gentle Exfoliating & Smooth Glow Face Wash: LKR 0
+- Professional Treatment Face Wash: Base price LKR 9500 (physical) [Delivery: LKR 400]
+  * Formula: Formula 1: Ultimate Salicylic & Zinc Sebum Regulator (Deep Acne-Clearing): LKR 0, Formula 2: Advanced Gluta-Vitamin C Radiant Glow (Brightening & Anti-Dark Spot): LKR 0, Formula 3: Papaya Enzyme & Alpha Arbutin Complex (Exfoliating & Clarifying): LKR 0
+- Advanced Whitening & SPF Body Lotions: Base price LKR 898 (physical)
+  * Formula: Formula 01: Glass Glow Whitening Body Lotion (Korean Style): LKR 0, Formula 02: Intensive Whitening Body Lotion SPF 50: LKR 0, Formula 03: Advanced Whitening Repair Body Lotion SPF 30+ (Vitamin C + Papaya & Jojoba): LKR 0, Formula 04: Korean Glass Glow SPF 30+ Body Lotion: LKR 0, Formula 05: Herbal UV Whitening Body Milk: LKR 0, Formula 06: Glutathione Brightening Lotion SPF 30+: LKR 0, Formula 07: Snow White Tone-Up Lotion SPF 30+: LKR 0, Formula 08: Advanced Tan Repair Lotion SPF 30+: LKR 0, Formula 09: Luxury Rice Whitening SPF 30+ Lotion: LKR 0, Formula 10: Herbal Glow Whitening Body Milk SPF 30+: LKR 0
+- Luxury Whitening & Deep Repair Body Butters: Base price LKR 1130 (physical)
+  * Formula: Formula 01 — Ultra Glow Whitening Body Butter: LKR 0, Formula 02 — Korean Rice Whitening Body Butter: LKR 0, Formula 03 — Spot Correcting Body Butter: LKR 0, Formula 04 — Herbal Brightening Body Butter: LKR 0, Formula 05 — Premium Gold Glow Body Butter: LKR 0
+- Intensive Fast-Action Night Whitening Body Lotions: Base price LKR 13400 (physical)
+  * Formula: Formula 1: Ultra-Fast Skin Bleaching & Whitening Body Lotion: LKR 0, Formula 2: Intense Gluta-Glow & Sun Damage Repair Body Lotion: LKR 0, Formula 3: Deep Pigmentation & Dark Spots Corrector Body Lotion: LKR 0
+- Handcrafted Activated Charcoal Beauty Soaps: Base price LKR 550 (physical)
+  * Formula: Formula 01 – Premium Acne Control Charcoal Soap: LKR 0, Formula 02 – Charcoal Brightening Soap: LKR 0, Formula 03 – Glass Skin Charcoal Soap: LKR 0, Formula 04 – Herbal Anti-Acne Charcoal Soap: LKR 0, Formula 05 – Luxury Clinical Charcoal Soap: LKR 0
+- Traditional Venivel & Sandalwood Ayurvedic Herbal Soap: Base price LKR 300 (physical)
+  * Formula / Base Type: Formula 01: Venivel & Sandalwood Herbal Glow (White Glycerin Base): LKR 0, Formula 02: Venivel & Sandalwood Herbal Glow (Goat Milk Soap Base): LKR 0
+- Premium Kojic Dipalmitate Treatment Soaps: Base price LKR 400 (physical)
+  * Formula: Formula 01 – Premium Anti-Acne Kojic Soap: LKR 0, Formula 02 – Kojic + Rice Brightening Soap: LKR 0, Formula 03 – Sensitive Skin Kojic Soap: LKR 0, Formula 04 – Acne Mark Repair Kojic Soap: LKR 0, Formula 05 – Luxury Clinical Kojic Soap: LKR 0
+- Clinical Treatment & Body Polishing Scrubs: Base price LKR 1050 (physical)
+  * Formula: Formula 01 – Clinical Ingrown Hair Eraser Scrub (Advanced): LKR 0, Formula 02 – Korean Glass Legs Repair Scrub: LKR 0, Formula 03 – Luxury AHA/BHA/PHA Triple Acid Scrub: LKR 0, Formula 04 – Dark Spot + Strawberry Legs Corrector Scrub: LKR 0, Formula 05 – Premium Dermatology Grade Strawberry Legs System: LKR 0
+- Artisanal Coffee & Sugar Body Polishes & Scrubs: Base price LKR 570 (physical)
+  * Formula: Formula 01 – Bright Coffee Milk Glow Scrub: LKR 0, Formula 02 – Korean BB Glow Coffee Scrub: LKR 0, Formula 03 – Acne & Dark Spot Repair Coffee Scrub: LKR 0, Formula 04 – Luxury Gold Coffee Body Polish: LKR 0, Formula 05 – Intensive Whitening Coffee Sugar Scrub: LKR 0
+- Premium Korean & Therapeutic Lip Care Treatments: Base price LKR 400 (physical)
+  * Formula: Formula 01 — Premium Korean Pink Lip Sleeping Mask 🍓💋: LKR 0, Formula 02 — Advanced Lip Whitening Balm SPF ☀️💄: LKR 0, Formula 03 — Herbal Beetroot Pink Lip Therapy 🌿🍓: LKR 0, Formula 04 — Intensive Lip Pigmentation Corrector Serum ✨🧪: LKR 0
+- Therapeutic Herbal Hair Growth & Scalp Treatment Oils: Base price LKR 740 (physical)
+  * Formula: Formula 01: Intense Hair Growth & Anti-Hair Fall Oil: LKR 0, Formula 02: Anti-Dandruff & Scalp Treatment Oil: LKR 0, Formula 03: Luxury Cooling & Anti-Stress Hair Oil: LKR 0, Formula 04: Ultimate 40-Herbal All-in-One Vitalizer: LKR 0, Formula 05: Hair Repair & Texture Smoothing Gloss Oil: LKR 0
+- Professional Hair Growth, Repair & Volumizing Serums: Base price LKR 515 (physical)
+  * Formula: Formula 01: Advanced Anti-Hair Fall & Root Activating Serum (Water-Based / Leave-on): LKR 0, Formula 02: Hair Repair & Anti-Split Ends Gloss Serum (Silicone-Based): LKR 0, Formula 03: Intense Hair Thickening & Volumizing Serum (Light Emulsion / Cream-Gel): LKR 0, Formula 04: Budget Eco-Growth & Anti-Hair Fall Serum (Water-Based / Leave-on): LKR 0, Formula 05: Daily Shine & Frizz-Control Hair Serum (Mineral-Light Oil Based): LKR 0
+- Advanced Facial Treatment & Clarifying Toners: Base price LKR 10500 (physical)
+  * Formula: Formula 01: Zinc PCA & Witch Hazel Sebum Balance Toner: LKR 0, Formula 02: Alpha Arbutin & Gluta-C Brightening Toner: LKR 0, Formula 03: Papaya Enzyme & AHA Pore Refining Toner: LKR 0
+- Underarm & Dark Area Whitening Treatment Creams: Base price LKR 645 (physical)
+  * Formula: Formula 01 — Fast Bright Underarm Whitening Cream: LKR 0, Formula 02 — Korean Intense Whitening Creama: LKR 0, Formula 03 — Herbal Dark Area Correcting Cream: LKR 0, Formula 04 — Premium Clinical Whitening Cream: LKR 0, Formula 05 — Ultra Fast Dark Area Repair Cream: LKR 0
+- All-in-One Lip Brightening & Nourishing Cream: Base price LKR 650 (physical)
+  * Packaging & Printing Options: 1kg Bulk Pack: LKR 10000, 20g Jar (with Label and Box Printing): LKR 850, 20g Jar (without Label and Box Printing): LKR 650, 20g Jar Batch of 25 pcs (with Label and Box Printing) - Total Rs. 21,250: LKR 21250, 20g Jar Batch of 25 pcs (without Label and Box Printing) - Total Rs. 16,250: LKR 16250
+- Hydrating & Brightening Water-Gel Body Serums: Base price LKR 1200 (physical)
+  * Formula: Formula 01 – Alpha Arbutin Brightening Body Serum: LKR 0, Formula 02 – Hydrating Brightening Body Serum: LKR 0, Formula 03 – Even Tone Body Serum: LKR 0, Formula 04 – Glass Glow Body Serum (Korean K-Beauty): LKR 0, Formula 05 – Premium Tone Correct Body Serum: LKR 0, Formula 06 – Luxury Bright Body Serum (Super Luxury Porcelain): LKR 0
+- Traditional Ayurvedic Maha Neeli & Butterfly Pea Hair Treatment Oils: Base price LKR 10000 (physical)
+  * Formula: Formula 01: Maha Neeli Hair Growth Oil (Anti-Hairfall & Regrowth): LKR 0, Formula 02: Butterfly Pea – Triphala Anti-Dandruff Hair Oil (Anti-Dandruff & Scalp Care): LKR 0
+- Factory Grade Clarifying Shampoo & Nourishing Conditioner Suite: Base price LKR 8500 (physical)
+  * Formula: Formula 01: Premium Clarifying & Nourishing Shampoo: LKR 0, Formula 02: Premium Nourishing Hair Conditioner: LKR 0, Duo Set: Shampoo + Conditioner (1L Each): LKR 0
+- Clinical Under-Eye Repair & Lifting Creams: Base price LKR 430 (physical)
+  * Formula: Formula 01 – Premium Dark Circle Corrector Eye Cream: LKR 0, Formula 02 – Clinical Wrinkle Lift Eye Cream (Argireline Liquid Botox): LKR 0, Formula 03 – Korean Glass Eye Repair Cream (Rice Ferment & Peptides): LKR 0, Formula 04 – Eye Brightening + Puffiness Repair Cream (Vitamin C & Caffeine): LKR 0, Formula 05 – Dermatology Grade Luxury Eye Cream (All-in-One Masterpiece): LKR 0
+- Therapeutic & Luxury Treatment Body Washes: Base price LKR 6800 (physical)
+  * Formula: Formula 01: Advanced Brightening & Exfoliating Body Wash: LKR 0, Formula 02: Deep Moisture Barrier & Repair Body Wash: LKR 0, Formula 03: Ultimate Acne-Clarifying Body Wash: LKR 0, Formula 04: Kojic Acid & Saffron Luxury Glowing Body Wash: LKR 0, Formula 05: Hydro-Glow All-in-One Treatment Body Wash: LKR 0
+- Therapeutic Hair Treatment & Scalp Strengthening Creams: Base price LKR 430 (physical)
+  * Formula: Formula 01: Anti-Hair Fall & Root Strengthening Cream: LKR 0, Formula 02: Fast Hair Growth & Scalp Booster Cream: LKR 0, Formula 03: Damage Repair & Anti-Split End Cream: LKR 0

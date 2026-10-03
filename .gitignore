@@ -35,3 +35,4 @@ frontend/consolidate_*.js
 frontend/scratch_*.js
 frontend/public/product_pdfs/
 scratch/
+*.exp
