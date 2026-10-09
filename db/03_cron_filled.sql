@@ -13,11 +13,11 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 -- Queue drainer safety net. webhook-wsender already fires process-message
 -- immediately on each inbound message; this catches anything left behind.
 SELECT cron.schedule(
-  'drain-message-queue',
+  'drain-message-queue-beauty-books-world',
   '* * * * *',
   $$
   SELECT net.http_post(
-    url     := 'http://api-gw:8000/functions/v1/process-message',
+    url     := 'http://api-gw:8000/functions/v1/process-message-beauty-books-world',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODY0NDc4NjYsImV4cCI6MjEwMTgwNzg2Nn0.X3SLU9ShCNBzlwY91D1CVoHsLHOfYOv6R6eJ8UpkhsQ"}'::jsonb,
     body    := '{"trigger":"cron"}'::jsonb
   );
@@ -26,11 +26,11 @@ SELECT cron.schedule(
 
 -- Order follow-ups + inactivity follow-ups.
 SELECT cron.schedule(
-  'send-followups',
+  'send-followups-beauty-books-world',
   '*/5 * * * *',
   $$
   SELECT net.http_post(
-    url     := 'http://api-gw:8000/functions/v1/send-followups',
+    url     := 'http://api-gw:8000/functions/v1/send-followups-beauty-books-world',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODY0NDc4NjYsImV4cCI6MjEwMTgwNzg2Nn0.X3SLU9ShCNBzlwY91D1CVoHsLHOfYOv6R6eJ8UpkhsQ"}'::jsonb,
     body    := '{}'::jsonb
   );

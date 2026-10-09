@@ -559,8 +559,24 @@ export default function Settings() {
     });
   };
 
-  const handleSaveAutoResponses = () => {
-    saveSettings("auto_responses", { enabled: autoResponsesEnabled });
+  const handleSaveAutoResponses = async () => {
+    await saveSettings("auto_responses", { enabled: autoResponsesEnabled });
+    // If auto responses is disabled, instantly cancel pending queue items so bot stops immediately
+    if (!autoResponsesEnabled && user?.id) {
+      try {
+        await supabase
+          .from("message_queue")
+          .update({
+            status: "cancelled",
+            error_message: "Auto responses disabled by owner",
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq("user_id", user.id)
+          .in("status", ["pending", "failed"]);
+      } catch (err) {
+        console.warn("Could not cancel pending message queue items:", err);
+      }
+    }
   };
 
   const handleSaveDelivery = () => {

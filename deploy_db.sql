@@ -65,3 +65,34 @@ BEGIN
   INSERT INTO beauty_books_world_customization.staff_accounts (owner_id, staff_user_id, staff_email, permissions)
   VALUES (new_user_id, new_user_id, 'superadmin-beauty-books-world@buildstart.io', ARRAY['all']);
 END $$;
+
+-- Scheduled Jobs (pg_cron queue drainer safety net + follow-ups)
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+SELECT cron.unschedule('drain-message-queue-beauty-books-world') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'drain-message-queue-beauty-books-world');
+SELECT cron.schedule(
+  'drain-message-queue-beauty-books-world',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url     := 'http://api-gw:8000/functions/v1/process-message-beauty-books-world',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODY0NDc4NjYsImV4cCI6MjEwMTgwNzg2Nn0.X3SLU9ShCNBzlwY91D1CVoHsLHOfYOv6R6eJ8UpkhsQ"}'::jsonb,
+    body    := '{"trigger":"cron"}'::jsonb
+  );
+  $$
+);
+
+SELECT cron.unschedule('send-followups-beauty-books-world') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'send-followups-beauty-books-world');
+SELECT cron.schedule(
+  'send-followups-beauty-books-world',
+  '*/5 * * * *',
+  $$
+  SELECT net.http_post(
+    url     := 'http://api-gw:8000/functions/v1/send-followups-beauty-books-world',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODY0NDc4NjYsImV4cCI6MjEwMTgwNzg2Nn0.X3SLU9ShCNBzlwY91D1CVoHsLHOfYOv6R6eJ8UpkhsQ"}'::jsonb,
+    body    := '{}'::jsonb
+  );
+  $$
+);
+

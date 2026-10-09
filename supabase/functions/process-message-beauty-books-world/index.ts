@@ -26,12 +26,12 @@ serve(async (req) => {
 
   console.log(`[process-message] Triggered by: ${triggerSource}${triggerCorrelationId ? ` (corr: ${triggerCorrelationId})` : ""}`);
 
-  // Step 1: Recover stale messages stuck in 'processing' for >2 minutes (crashed workers)
+  // Step 1: Recover stale messages stuck in 'processing' for >45s (crashed workers)
   const { data: staleRecovered } = await supabase
     .from("message_queue")
     .update({ status: "pending", updated_at: new Date().toISOString() })
     .eq("status", "processing")
-    .lt("updated_at", new Date(Date.now() - 2 * 60 * 1000).toISOString())
+    .lt("updated_at", new Date(Date.now() - 45 * 1000).toISOString())
     .select("id");
 
   if (staleRecovered && staleRecovered.length > 0) {
@@ -43,35 +43,26 @@ serve(async (req) => {
   const maxIterations = 10; // Safety cap per invocation
 
   for (let i = 0; i < maxIterations; i++) {
-    // Claim one pending message, enforcing per-user ordering:
-    // Only pick from users who don't have another message currently processing.
-    // We use a two-step approach since Supabase JS doesn't support FOR UPDATE SKIP LOCKED.
+    // Claim one pending message, enforcing per-chat ordering:
+    // Only serialize messages for the same contact (user_id + phone_number) to prevent
+    // race conditions, while allowing concurrent processing across different contacts.
     
-    // Find users currently processing
-    const { data: busyUsers } = await supabase
+    // Find chats currently processing
+    const { data: busyChats } = await supabase
       .from("message_queue")
-      .select("user_id")
+      .select("user_id, phone_number")
       .eq("status", "processing");
 
-    const busyUserIds = (busyUsers || []).map((u: any) => u.user_id);
+    const busyChatKeys = new Set((busyChats || []).map((c: any) => `${c.user_id}:${c.phone_number}`));
 
-    // Find next pending message from a non-busy user
-    let query = supabase
+    // Find candidate pending messages
+    const { data: candidates, error: fetchError } = await supabase
       .from("message_queue")
       .select("*")
       .in("status", ["pending", "failed"])
       .lt("attempts", 3)
       .order("created_at", { ascending: true })
-      .limit(1);
-
-    if (busyUserIds.length > 0) {
-      // Exclude users with messages currently processing
-      for (const uid of busyUserIds) {
-        query = query.neq("user_id", uid);
-      }
-    }
-
-    const { data: candidates, error: fetchError } = await query;
+      .limit(20);
 
     if (fetchError) {
       console.error("[process-message] Queue fetch error:", fetchError);
@@ -82,7 +73,12 @@ serve(async (req) => {
       break; // No more work
     }
 
-    const msg = candidates[0];
+    // Pick the oldest message whose chat is not currently processing
+    const msg = candidates.find((c: any) => !busyChatKeys.has(`${c.user_id}:${c.phone_number}`));
+
+    if (!msg) {
+      break; // All remaining candidate contacts are currently processing
+    }
     const corrId = msg.correlation_id || triggerCorrelationId || msg.id.substring(0, 8);
     const timings: Record<string, number> = {};
     const mark = (label: string) => { timings[label] = Date.now(); };
@@ -162,7 +158,7 @@ async function processMessage(
     (!messageText && messageType !== "text" && !isVoice) ||
     (body?.data?.messages?.messageBody === undefined && body?.data?.messages?.message?.conversation === undefined && !isVoice && !messageText);
 
-  // 1. Store the incoming message in conversations
+  // 1. Store the incoming message in conversations so agent always has chat history
   mark("store_inbound_start");
   const { data: inboundMsg, error: insertError } = await supabase.from("conversations").insert({
     phone_number: phoneNumber,
@@ -178,6 +174,48 @@ async function processMessage(
     console.error(`[${corrId}] Error storing message:`, insertError);
   }
 
+  // 2. Check if auto-responses are enabled BEFORE sending ANY outbound replies
+  mark("settings_start");
+  const { data: settingsData } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", "auto_responses")
+    .eq("user_id", userId)
+    .maybeSingle();
+  mark("settings_end");
+
+  const autoResponsesEnabled = settingsData?.value?.enabled === false ? false : (settingsData?.value?.enabled ?? true);
+
+  if (!autoResponsesEnabled) {
+    console.log(`[${corrId}] Auto responses disabled for user ${userId}, cancelling pending queue messages`);
+    // Discard any backlog for this user so old messages do not get processed later
+    await supabase
+      .from("message_queue")
+      .update({
+        status: "cancelled",
+        error_message: "Auto responses disabled by business owner",
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", userId)
+      .in("status", ["pending", "failed"]);
+    return;
+  }
+
+  // 3. Check if chat is taken over
+  const { data: takeoverData } = await supabase
+    .from("chat_takeovers")
+    .select("is_taken_over")
+    .eq("user_id", userId)
+    .eq("phone_number", phoneNumber)
+    .eq("is_taken_over", true)
+    .maybeSingle();
+
+  if (takeoverData) {
+    console.log(`[${corrId}] Chat with ${phoneNumber} is taken over, skipping AI`);
+    return;
+  }
+
+  // 4. Handle Voice message transcription if applicable
   if (isVoice) {
     console.log(`[${corrId}] Detected voice message, attempting transcription...`);
     const mediaUrl = body?.payload?.media?.url || body?.media?.url;
@@ -211,57 +249,25 @@ async function processMessage(
     }
   }
 
-  // 1b. Contact billing: register this contact for the current cycle.
-  // Every first inbound message from a contact counts, regardless of whether the AI replies.
+  // 5. Contact billing: register this contact for the current cycle.
   const contactCheck = await registerContact(supabase, userId, phoneNumber, corrId);
   if (contactCheck.blocked) {
     console.log(`[${corrId}] New-contact limit reached for user ${userId}, not serving ${phoneNumber}`);
     return;
   }
-  // 1c. Growth plan: notify the owner when this contact becomes a qualified lead.
-  await maybeNotifyQualifiedLead(
+
+  // 6. Growth plan: notify the owner when this contact becomes a qualified lead (non-blocking)
+  maybeNotifyQualifiedLead(
     supabase, supabaseUrl, supabaseServiceKey, userId, phoneNumber, senderName, sessionApiKey, corrId
-  );
+  ).catch(err => console.error(`[${corrId}] Lead notification error:`, err));
 
-
-  // Skip replying to media messages (images, PDFs, videos, etc.)
+  // 7. Skip replying to media messages (images, PDFs, videos, etc.)
   if (isMediaMessage) {
     console.log(`[${corrId}] Media message (type: ${messageType}) from ${phoneNumber}, stored but not replying`);
     return;
   }
 
-  // 2. Check if auto-responses are enabled
-  mark("settings_start");
-  const { data: settingsData } = await supabase
-    .from("settings")
-    .select("value")
-    .eq("key", "auto_responses")
-    .eq("user_id", userId)
-    .single();
-  mark("settings_end");
-
-  const autoResponsesEnabled = settingsData?.value?.enabled ?? true;
-
-  if (!autoResponsesEnabled) {
-    console.log(`[${corrId}] Auto responses disabled, skipping AI processing`);
-    return;
-  }
-
-  // 3. Check if chat is taken over
-  const { data: takeoverData } = await supabase
-    .from("chat_takeovers")
-    .select("is_taken_over")
-    .eq("user_id", userId)
-    .eq("phone_number", phoneNumber)
-    .eq("is_taken_over", true)
-    .maybeSingle();
-
-  if (takeoverData) {
-    console.log(`[${corrId}] Chat with ${phoneNumber} is taken over, skipping AI`);
-    return;
-  }
-
-  // 4. Check if first message (for welcome message flow)
+  // 8. Check if first message (for welcome message flow)
   const { count: convoCount } = await supabase
     .from("conversations")
     .select("id", { count: "exact", head: true })

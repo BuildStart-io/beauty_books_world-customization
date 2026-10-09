@@ -13,11 +13,11 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 -- Queue drainer safety net. webhook-wsender already fires process-message
 -- immediately on each inbound message; this catches anything left behind.
 SELECT cron.schedule(
-  'drain-message-queue',
+  'drain-message-queue-beauty-books-world',
   '* * * * *',
   $$
   SELECT net.http_post(
-    url     := '<FUNCTIONS_URL>/process-message',
+    url     := '<FUNCTIONS_URL>/process-message-beauty-books-world',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_ROLE_KEY>"}'::jsonb,
     body    := '{"trigger":"cron"}'::jsonb
   );
@@ -26,11 +26,11 @@ SELECT cron.schedule(
 
 -- Order follow-ups + inactivity follow-ups.
 SELECT cron.schedule(
-  'send-followups',
+  'send-followups-beauty-books-world',
   '*/5 * * * *',
   $$
   SELECT net.http_post(
-    url     := '<FUNCTIONS_URL>/send-followups',
+    url     := '<FUNCTIONS_URL>/send-followups-beauty-books-world',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_ROLE_KEY>"}'::jsonb,
     body    := '{}'::jsonb
   );
